@@ -14,7 +14,7 @@ void set_tss(int fd) {
 }
 
 void load_guest_binary(void *dst) {
-    int fd = open("../xv6/bootblock", O_RDONLY);
+    int fd = open("../../my_xv6/bootblock", O_RDONLY);
     if (fd < 0) 
         error("open fail");
     

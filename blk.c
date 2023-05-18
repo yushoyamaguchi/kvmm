@@ -15,7 +15,7 @@ void create_blk() {
     blk->status_command_reg = 0x40;
     blk->dev_conotrl_regs = 0;
 
-    int img_fd = open("../xv6/xv6.img", O_RDONLY);
+    int img_fd = open("../../my_xv6/xv6.img", O_RDONLY);
     if (img_fd < 0)
         error("faile open xv6.img");
 
@@ -30,7 +30,7 @@ void create_blk() {
 
     dst = (void*)blk->data+IMGE_SIZE;
 
-    int fs_fd = open("../xv6/fs.img", O_RDONLY);
+    int fs_fd = open("../../my_xv6/fs.img", O_RDONLY);
     if (fs_fd < 0)
         error("faile oepn fs.img\n");
     
