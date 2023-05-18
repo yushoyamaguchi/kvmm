@@ -3,3 +3,5 @@
 kvmm
 *.img
 out.txt
+input_filename.txt
+core*

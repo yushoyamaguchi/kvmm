@@ -18,3 +18,16 @@ The goal of kvmm is to run xv6.
 - [dpw/kvm-hello-world](https://github.com/dpw/kvm-hello-world)
 - [kvmtool/kvmtool](https://github.com/kvmtool/kvmtool)
 - [ykskb/dax86](https://github.com/ykskb/dax86)
+
+## 追記:使い方
+入力ファイルに
+```
+kernel image file
+fs image file
+bootblock file
+```
+このように書いた上で、
+```
+kvmm input_file
+```
+を実行する

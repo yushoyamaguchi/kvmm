@@ -1,4 +1,6 @@
 #include "vm.h"
+#include "input_filename.h"
+
 
 void create_vm(struct vm *vm) {
     vm->fd = ioctl(vm->vm_fd, KVM_CREATE_VM, 0);
@@ -14,7 +16,7 @@ void set_tss(int fd) {
 }
 
 void load_guest_binary(void *dst) {
-    int fd = open("../../my_xv6/bootblock", O_RDONLY);
+    int fd = open(bootblock_name, O_RDONLY);
     if (fd < 0) 
         error("open fail");
     

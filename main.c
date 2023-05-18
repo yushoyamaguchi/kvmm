@@ -19,9 +19,15 @@
 #include "mmio.h"
 #include "uart.h"
 #include "vm.h"
+#include "input_filename.h"
+
 
 struct vm *vm;
 int outfd = 0;
+
+char kernel_img_name[MAX_LINE_LENGTH];
+char fs_img_name[MAX_LINE_LENGTH];
+char bootblock_name[MAX_LINE_LENGTH];
 
 void init_kvm(struct vm *vm) {
     vm->vm_fd = open("/dev/kvm", O_RDWR);
@@ -55,6 +61,34 @@ void *observe_input(void *in) {
 extern struct vcpu *vcpu;
 
 int main(int argc, char **argv) {
+    if(argc!=2){
+        printf("Usage: %s <input file name> \n", argv[0]);
+        exit(1);
+    }
+    FILE *file = fopen(argv[1], "r");
+    if (file == NULL) {
+        printf("cannot open the input file\n");
+        return 1;
+    }
+    char line[MAX_LINE_LENGTH];
+    int input_line_count=0;
+    while (fgets(line, MAX_LINE_LENGTH-1, file) != NULL) {
+        line[strcspn(line, "\n")] = 0;
+        printf("%s\n", line);
+        if(input_line_count==0){
+            strcpy(kernel_img_name, line);
+        }
+        else if(input_line_count==1){
+            strcpy(fs_img_name, line);
+        }
+        else if(input_line_count==2){
+            strcpy(bootblock_name, line);
+        }
+        else{
+            break;
+        }
+        input_line_count++;
+    }
     vm = malloc(sizeof(struct vm));
 
     kvm_mem *memreg = malloc(sizeof(kvm_mem));

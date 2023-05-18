@@ -1,7 +1,9 @@
 #include "blk.h"
+#include "input_filename.h"
 
 extern struct lapic *lapic;
 struct blk *blk;
+
 
 void create_blk() {
     blk = malloc(sizeof(struct blk));
@@ -15,7 +17,8 @@ void create_blk() {
     blk->status_command_reg = 0x40;
     blk->dev_conotrl_regs = 0;
 
-    int img_fd = open("../../my_xv6/xv6.img", O_RDONLY);
+    int img_fd = open(kernel_img_name, O_RDONLY);
+    printf("kernel_img_name: %s\n", kernel_img_name);
     if (img_fd < 0)
         error("faile open xv6.img");
 
@@ -30,9 +33,9 @@ void create_blk() {
 
     dst = (void*)blk->data+IMGE_SIZE;
 
-    int fs_fd = open("../../my_xv6/fs.img", O_RDONLY);
+    int fs_fd = open(fs_img_name, O_RDONLY);
     if (fs_fd < 0)
-        error("faile oepn fs.img\n");
+        error("faile open fs.img\n");
     
     for(;;) {
         int sizef = read(fs_fd, dst, FS_IMAGE_SIZE);
