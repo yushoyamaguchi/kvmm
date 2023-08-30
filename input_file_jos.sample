@@ -1,0 +1,3 @@
+../my_jos/obj/kern/kernel.img
+../my_jos/obj/fs.img
+../my_jos/obj/boot/boot
