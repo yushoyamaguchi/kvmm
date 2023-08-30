@@ -52,7 +52,7 @@ void *observe_input(void *in) {
         struct subthread_input *subin = (struct subthread_input*)in;
         int c = getchar();
         set_uart_buff((char)c);
-        printf("set: %d\n", co);
+        //printf("set: %d\n", co);
         enq_irr(subin->vcpu, IRQ_BASE+4);
         co++;
     }
