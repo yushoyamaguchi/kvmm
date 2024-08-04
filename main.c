@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <linux/kvm.h>
 #include <pthread.h>
+#include <time.h>
 #include "util.h"
 #include "type.h"
 #include "vcpu.h"
@@ -116,28 +117,63 @@ int main(int argc, char **argv) {
         error("pthread_create");
     }
 
+    // Open file to write time data
+    int file_fd = open("time.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (file_fd < 0) {
+        error("open time.txt");
+    }
+
+    time_t last_write_time = time(NULL);
+    struct timespec start_kvm, end_kvm, start_emulation, end_emulation;
+    long kvm_time_ns = 0, emulation_time_ns = 0;
+    long count_io = 0;
+    long count_mmio = 0;
+    long count_interrupt = 0;
+
     for (;;) {
+        clock_gettime(CLOCK_MONOTONIC, &start_kvm);
         if (ioctl(vcpu->fd, KVM_RUN, 0) < 0) {
             print_regs(vcpu);
             error("KVM_RUN");
         }
+        clock_gettime(CLOCK_MONOTONIC, &end_kvm);
 
         struct kvm_run *run = vcpu->kvm_run;
+        clock_gettime(CLOCK_MONOTONIC, &start_emulation);
 
         switch (run->exit_reason) {
         case KVM_EXIT_IO:
+            count_io++;
             emulate_io(vcpu);
             break;
         case KVM_EXIT_MMIO:
+            count_mmio++;
             emulate_mmio(vcpu);
             break;
         case KVM_EXIT_IRQ_WINDOW_OPEN:
+            count_interrupt++;
             emulate_interrupt(vcpu);
             break;
         default:
             printf("exit reason: %d\n", vcpu->kvm_run->exit_reason);
             break;
         }
+        clock_gettime(CLOCK_MONOTONIC, &end_emulation);
+
+        kvm_time_ns += (end_kvm.tv_sec - start_kvm.tv_sec) * 1e9 + (end_kvm.tv_nsec - start_kvm.tv_nsec);
+        emulation_time_ns += (end_emulation.tv_sec - start_emulation.tv_sec) * 1e9 + (end_emulation.tv_nsec - start_emulation.tv_nsec);
+
+        time_t current_time = time(NULL);
+        if (difftime(current_time, last_write_time) >= 10) {
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "KVM time: %ld ns, Emulation time: %ld ns\n", kvm_time_ns, emulation_time_ns);
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "IO count: %ld, MMIO count: %ld, Interrupt count: %ld\n", count_io, count_mmio, count_interrupt);
+            write(file_fd, buffer, strlen(buffer));
+            last_write_time = current_time;
+            kvm_time_ns = 0;
+            emulation_time_ns = 0;
+        }
     }
+    close(file_fd);
     return 1;   
 }
