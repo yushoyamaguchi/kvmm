@@ -126,9 +126,13 @@ int main(int argc, char **argv) {
     time_t last_write_time = time(NULL);
     struct timespec start_kvm, end_kvm, start_emulation, end_emulation;
     long kvm_time_ns = 0, emulation_time_ns = 0;
-    long count_io = 0;
+    long count_io_in = 0;
+    long count_io_out = 0;
     long count_mmio = 0;
     long count_interrupt = 0;
+    long count_disk_in = 0;
+    long count_uart_in = 0;
+    long count_132 = 0;
 
     for (;;) {
         clock_gettime(CLOCK_MONOTONIC, &start_kvm);
@@ -143,7 +147,24 @@ int main(int argc, char **argv) {
 
         switch (run->exit_reason) {
         case KVM_EXIT_IO:
-            count_io++;
+            if (run->io.direction == KVM_EXIT_IO_IN) {
+                count_io_in++;
+                switch (vcpu->kvm_run->io.port) {
+                case 0x1F0 ... 0x1F7:
+                    count_disk_in++;
+                    break;
+                case 0x3f8 ... 0x3fd:
+                    count_uart_in++;
+                    break;    
+                default:
+                    break;
+                }
+                if (run->io.port == 0x84) {
+                    count_132++;
+                }
+            } else {
+                count_io_out++;
+            }
             emulate_io(vcpu);
             break;
         case KVM_EXIT_MMIO:
@@ -167,7 +188,9 @@ int main(int argc, char **argv) {
         if (difftime(current_time, last_write_time) >= 10) {
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "KVM time: %ld ns, Emulation time: %ld ns\n", kvm_time_ns, emulation_time_ns);
-            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "IO count: %ld, MMIO count: %ld, Interrupt count: %ld\n", count_io, count_mmio, count_interrupt);
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "IO in: %ld, IO out: %ld, MMIO count: %ld, Interrupt count: %ld\n", count_io_in, count_io_out, count_mmio, count_interrupt);
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "Disk in: %ld, UART in: %ld\n", count_disk_in, count_uart_in);
+            snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "0x84 count: %ld\n", count_132);
             write(file_fd, buffer, strlen(buffer));
             last_write_time = current_time;
             kvm_time_ns = 0;
